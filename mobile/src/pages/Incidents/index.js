@@ -10,19 +10,33 @@ import api from '../../services/api';
 export default function Incidents(){
     const [listIncidents , setListIncidents] = useState([])
     const [total , setTotal] = useState(0);
+    const [page , setPage] = useState(1);
+    const [loading , setLoading] = useState(false);
     const navigation =  useNavigation();
 
-    function navigateToDetail(){ 
-        navigation.navigate("Detail");
+    function navigateToDetail(incident){ 
+        navigation.navigate("Detail", {incident});
     }
 
     async function loadIncidents(){
+        if(loading || (total > 0 && listIncidents.length === total)){
+            return
+        }
+
+        setLoading(true);
         try{
-            const res = await api.get('/incidents')
-            setListIncidents(res.data)
+            const res = await api.get('/incidents' , {
+                params: {
+                    page
+                }
+            })
+            setListIncidents([...listIncidents , ...res.data])
             setTotal(res.headers['x-total-count'])
+            setPage(page + 1);
         }catch(err){
             console.log("Erro ao consultar casos")
+        }finally{
+            setLoading(false);
         }
     }
 
@@ -38,12 +52,14 @@ export default function Incidents(){
                 </Text>            
             </View>
             <Text style={styles.title}>Bem-vindo!</Text>
-            <Text style={styles.description}>Escolha um dos caos abaixo e salve o dia</Text>
+            <Text style={styles.description}>Escolha um dos casos abaixo e salve o dia</Text>
 
             <FlatList style={styles.incidentList} 
             showsVerticalScrollIndicator={false}           
             data={listIncidents}
             keyExtractor={(x,index) => String(index)}
+            onEndReached={loadIncidents}
+            onEndReachedThreshold={0.2}
             renderItem={({item: incident}) => (
                 <View style={styles.incident}>
                     <Text style={styles.incidentProperty}>ONG:</Text>
@@ -56,7 +72,7 @@ export default function Incidents(){
                     <Text style={styles.incidentValue}>{Intl.NumberFormat('pt-BR' , {style:"currency" , currency: "BRL"} ).format(incident.value)}</Text>
 
                     <TouchableOpacity style={styles.detailsButton}
-                    onPress={navigateToDetail} >
+                    onPress={() => navigateToDetail(incident)} >
                         <Text style={styles.detailsButtonText}>Ver mais detalhes</Text>
                         <Feather name="arrow-right" size={16} color="#E02041"/>
                     </TouchableOpacity>
