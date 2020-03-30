@@ -1,6 +1,8 @@
-const { development } = require("../../knexfile")
+const { development , test } = require("../../knexfile")
 const knex = require("knex")
 
-const connection = knex(development)
+ const config  = process.env.NODE_ENV == 'test' ? test : development
+
+const connection = knex(config)
 
 module.exports = connection
